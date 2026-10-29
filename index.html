@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TypePulse — Speed Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Link to the external CSS file -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/></svg>
+      </div>
+      <span>TypePulse</span>
+    </div>
+
+    <!-- Mode Selector -->
+    <div class="controls-pill">
+      <button class="btn-toggle active" data-time="15">15s</button>
+      <button class="btn-toggle" data-time="30">30s</button>
+      <button class="btn-toggle" data-time="60">60s</button>
+      <div class="divider"></div>
+      <button id="sound-btn" class="btn-toggle active" title="Toggle Mechanical Audio">Audio: ON</button>
+    </div>
+  </header>
+
+  <!-- Main Game Area -->
+  <main>
+    <!-- Heads-Up Display -->
+    <div class="hud">
+      <div class="hud-card">
+        <div class="hud-label">Time Remaining</div>
+        <div class="hud-val" id="time-val">15s</div>
+      </div>
+      <div class="hud-card">
+        <div class="hud-label">WPM</div>
+        <div class="hud-val accent" id="wpm-val">0</div>
+      </div>
+      <div class="hud-card">
+        <div class="hud-label">Accuracy</div>
+        <div class="hud-val" id="acc-val">100%</div>
+      </div>
+      <div class="hud-card">
+        <div class="hud-label">Best Record</div>
+        <div class="hud-val" id="pb-val">0</div>
+      </div>
+    </div>
+
+    <!-- Interactive Typing Container -->
+    <div class="typing-box" id="typing-box">
+      <div id="caret"></div>
+      <div id="text-display"></div>
+      <input type="text" id="hidden-input" autocomplete="off" autocapitalize="off" spellcheck="false" />
+      
+      <div class="focus-alert" id="focus-alert">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        Click anywhere to focus and type
+      </div>
+    </div>
+
+    <!-- Restart Action -->
+    <div class="action-bar">
+      <button class="btn-restart" id="btn-restart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        Restart Test (Tab + Enter)
+      </button>
+    </div>
+  </main>
+
+  <!-- Final Results Modal -->
+  <div class="result-dialog" id="result-dialog">
+    <div class="result-card">
+      <div>
+        <h2 style="font-size: 1.75rem; font-weight: 800; margin-bottom: 0.25rem;">Test Complete!</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Here is a breakdown of your performance</p>
+      </div>
+
+      <div class="result-stats-grid">
+        <div class="result-tile">
+          <div class="result-tile-lbl">Net WPM</div>
+          <div class="result-tile-val" style="color: var(--accent)" id="res-wpm">0</div>
+        </div>
+        <div class="result-tile">
+          <div class="result-tile-lbl">Accuracy</div>
+          <div class="result-tile-val" style="color: var(--char-correct)" id="res-acc">0%</div>
+        </div>
+        <div class="result-tile">
+          <div class="result-tile-lbl">Characters</div>
+          <div class="result-tile-val" id="res-chars">0</div>
+        </div>
+        <div class="result-tile">
+          <div class="result-tile-lbl">Total Errors</div>
+          <div class="result-tile-val" style="color: var(--char-incorrect)" id="res-errors">0</div>
+        </div>
+      </div>
+
+      <button class="btn-restart" id="modal-btn-restart" style="justify-content: center; background: var(--accent); color: #000; font-weight: 700; border: none;">
+        Try Again
+      </button>
+    </div>
+  </div>
+
+  <footer style="color: var(--text-muted); font-size: 0.8rem; text-align: center; margin-top: 1.5rem;">
+    TypePulse &copy; Ready to run in VS Code
+  </footer>
+
+  <script>
+    const WORD_LIST = [
+      "the", "be", "to", "of", "and", "a", "in", "that", "have", "it", "for", "not", "on", 
+      "with", "he", "as", "you", "do", "at", "this", "but", "his", "by", "from", "they", 
+      "we", "say", "her", "she", "or", "an", "will", "my", "one", "all", "would", "there", 
+      "their", "what", "so", "up", "out", "if", "about", "who", "get", "which", "go", "me",
+      "when", "make", "can", "like", "time", "no", "just", "him", "know", "take", "people", 
+      "into", "year", "your", "good", "some", "could", "them", "see", "other", "than", "then", 
+      "now", "look", "only", "come", "its", "over", "think", "also", "back", "after", "use", 
+      "two", "how", "our", "work", "first", "well", "way", "even", "new", "want", "because", 
+      "any", "these", "give", "day", "most", "us", "code", "system", "program", "build", "fast"
+    ];
+
+    let selectedDuration = 15;
+    let timer = selectedDuration;
+    let intervalId = null;
+    let isRunning = false;
+    let soundEnabled = true;
+
+    let words = [];
+    let currentWordIndex = 0;
+    let currentCharIndex = 0;
+    let totalKeystrokes = 0;
+    let correctKeystrokes = 0;
+    let errorsCount = 0;
+
+    const textDisplay = document.getElementById('text-display');
+    const caret = document.getElementById('caret');
+    const hiddenInput = document.getElementById('hidden-input');
+    const typingBox = document.getElementById('typing-box');
+    const focusAlert = document.getElementById('focus-alert');
+    const timeVal = document.getElementById('time-val');
+    const wpmVal = document.getElementById('wpm-val');
+    const accVal = document.getElementById('acc-val');
+    const pbVal = document.getElementById('pb-val');
+    const soundBtn = document.getElementById('sound-btn');
+    const btnRestart = document.getElementById('btn-restart');
+    const modalBtnRestart = document.getElementById('modal-btn-restart');
+    const resultDialog = document.getElementById('result-dialog');
+    const timeButtons = document.querySelectorAll('[data-time]');
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playClickSound(isError = false) {
+      if (!soundEnabled) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (isError) {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(140, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.08);
+      } else {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(580 + Math.random() * 80, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.04);
+      }
+    }
+
+    let personalBest = localStorage.getItem('typepulse_pb') || 0;
+    pbVal.innerText = personalBest;
+
+    function generateWords() {
+      words = [];
+      for (let i = 0; i < 75; i++) {
+        const rand = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
+        words.push(rand);
+      }
+    }
+
+    function renderWords() {
+      textDisplay.innerHTML = '';
+      words.forEach((word) => {
+        const wordSpan = document.createElement('span');
+        wordSpan.className = 'word';
+        word.split('').forEach((ch) => {
+          const letterSpan = document.createElement('span');
+          letterSpan.className = 'letter';
+          letterSpan.innerText = ch;
+          wordSpan.appendChild(letterSpan);
+        });
+        textDisplay.appendChild(wordSpan);
+      });
+      positionCaret();
+    }
+
+    function positionCaret() {
+      const activeWord = textDisplay.children[currentWordIndex];
+      if (!activeWord) return;
+
+      const letters = activeWord.querySelectorAll('.letter');
+      if (currentCharIndex < letters.length) {
+        const activeLetter = letters[currentCharIndex];
+        caret.style.left = activeLetter.offsetLeft + 'px';
+        caret.style.top = (activeLetter.offsetTop + 2) + 'px';
+      } else if (letters.length > 0) {
+        const lastLetter = letters[letters.length - 1];
+        caret.style.left = (lastLetter.offsetLeft + lastLetter.offsetWidth) + 'px';
+        caret.style.top = (lastLetter.offsetTop + 2) + 'px';
+      }
+
+      if (activeWord.offsetTop > textDisplay.clientHeight + textDisplay.scrollTop - 40) {
+        textDisplay.scrollTop = activeWord.offsetTop - 20;
+      } else if (activeWord.offsetTop < textDisplay.scrollTop) {
+        textDisplay.scrollTop = 0;
+      }
+    }
+
+    function initTest() {
+      clearInterval(intervalId);
+      isRunning = false;
+      timer = selectedDuration;
+      currentWordIndex = 0;
+      currentCharIndex = 0;
+      totalKeystrokes = 0;
+      correctKeystrokes = 0;
+      errorsCount = 0;
+
+      timeVal.innerText = `${timer}s`;
+      wpmVal.innerText = '0';
+      accVal.innerText = '100%';
+      resultDialog.classList.remove('active');
+      textDisplay.scrollTop = 0;
+
+      generateWords();
+      renderWords();
+      focusInput();
+    }
+
+    function focusInput() {
+      hiddenInput.focus();
+      focusAlert.classList.remove('active');
+    }
+
+    function startTimer() {
+      isRunning = true;
+      intervalId = setInterval(() => {
+        timer--;
+        timeVal.innerText = `${timer}s`;
+        calculateStats();
+
+        if (timer <= 0) {
+          endTest();
+        }
+      }, 1000);
+    }
+
+    function calculateStats() {
+      const timeSpent = selectedDuration - timer;
+      if (timeSpent <= 0) return { netWpm: 0, accuracy: 100 };
+
+      const timeInMinutes = timeSpent / 60;
+      const netWpm = Math.max(0, Math.round(((correctKeystrokes / 5) - errorsCount) / timeInMinutes));
+      const accuracy = totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 100;
+
+      wpmVal.innerText = netWpm;
+      accVal.innerText = `${accuracy}%`;
+
+      return { netWpm, accuracy };
+    }
+
+    function endTest() {
+      clearInterval(intervalId);
+      isRunning = false;
+      const { netWpm, accuracy } = calculateStats();
+
+      if (netWpm > personalBest) {
+        personalBest = netWpm;
+        localStorage.setItem('typepulse_pb', personalBest);
+        pbVal.innerText = personalBest;
+      }
+
+      document.getElementById('res-wpm').innerText = netWpm;
+      document.getElementById('res-acc').innerText = `${accuracy}%`;
+      document.getElementById('res-chars').innerText = totalKeystrokes;
+      document.getElementById('res-errors').innerText = errorsCount;
+      resultDialog.classList.add('active');
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (resultDialog.classList.contains('active')) return;
+
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        initTest();
+        return;
+      }
+
+      if (document.activeElement !== hiddenInput) {
+        focusInput();
+      }
+
+      if (e.key.length === 1 || e.key === 'Backspace' || e.key === ' ') {
+        if (!isRunning && timer > 0 && e.key !== 'Backspace') {
+          startTimer();
+        }
+      }
+
+      const activeWordSpan = textDisplay.children[currentWordIndex];
+      if (!activeWordSpan) return;
+      const letters = activeWordSpan.querySelectorAll('.letter');
+
+      if (e.key === ' ') {
+        e.preventDefault();
+        if (currentCharIndex === 0) return;
+
+        currentWordIndex++;
+        currentCharIndex = 0;
+        positionCaret();
+        return;
+      }
+
+      if (e.key === 'Backspace') {
+        if (currentCharIndex > 0) {
+          currentCharIndex--;
+          const currentLetter = letters[currentCharIndex];
+          if (currentLetter.classList.contains('overflow')) {
+            currentLetter.remove();
+          } else {
+            currentLetter.className = 'letter';
+          }
+          positionCaret();
+        }
+        return;
+      }
+
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+        totalKeystrokes++;
+
+        if (currentCharIndex < letters.length) {
+          const currentLetter = letters[currentCharIndex];
+          const targetChar = currentLetter.innerText;
+
+          if (e.key === targetChar) {
+            currentLetter.classList.add('correct');
+            correctKeystrokes++;
+            playClickSound(false);
+          } else {
+            currentLetter.classList.add('incorrect');
+            errorsCount++;
+            playClickSound(true);
+          }
+          currentCharIndex++;
+        } else if (letters.length < 24) {
+          const overflowSpan = document.createElement('span');
+          overflowSpan.className = 'letter overflow';
+          overflowSpan.innerText = e.key;
+          activeWordSpan.appendChild(overflowSpan);
+          errorsCount++;
+          currentCharIndex++;
+          playClickSound(true);
+        }
+
+        positionCaret();
+      }
+    });
+
+    timeButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        timeButtons.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedDuration = parseInt(btn.getAttribute('data-time'));
+        initTest();
+      });
+    });
+
+    soundBtn.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      soundBtn.innerText = soundEnabled ? 'Audio: ON' : 'Audio: OFF';
+      soundBtn.classList.toggle('active', soundEnabled);
+    });
+
+    typingBox.addEventListener('click', focusInput);
+    hiddenInput.addEventListener('blur', () => {
+      if (!resultDialog.classList.contains('active')) {
+        focusAlert.classList.add('active');
+      }
+    });
+    focusAlert.addEventListener('click', focusInput);
+
+    btnRestart.addEventListener('click', initTest);
+    modalBtnRestart.addEventListener('click', initTest);
+    window.addEventListener('resize', positionCaret);
+
+    initTest();
+  </script>
+</body>
+</html>
